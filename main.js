@@ -14,15 +14,64 @@ scene.add(pointLight);
 camera.position.z = 10;
 
 //-- QUIZ DATA ----------------------------------------------------------------
-const quizData = [
-    { planet: 'mars', texture: 'textures/2k_mars.jpg', question: '1 + 1 = ?', answers: [2, 3], correct: 2 },
-    { planet: 'earth', texture: 'textures/2k_earth_daymap.jpg', question: '2 + 3 = ?', answers: [5, 4], correct: 5 },
-    { planet: 'venus', texture: 'textures/2k_venus_surface.jpg', question: '5 - 2 = ?', answers: [3, 4], correct: 3 },
-    { planet: 'mercury', texture: 'textures/2k_mercury.jpg', question: '4 + 1 = ?', answers: [5, 6], correct: 5 },
-    { planet: 'moon', texture: 'textures/2k_moon.jpg', question: '3 - 1 = ?', answers: [2, 1], correct: 2 },
+const planetTextures = [
+    { name: 'mars', texture: 'textures/2k_mars.jpg' },
+    { name: 'earth', texture: 'textures/2k_earth_daymap.jpg' },
+    { name: 'venus', texture: 'textures/2k_venus_surface.jpg' },
+    { name: 'mercury', texture: 'textures/2k_mercury.jpg' },
+    { name: 'moon', texture: 'textures/2k_moon.jpg' },
 ];
 
-let currentQuestionIndex = 0;
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function generateProblem() {
+    const operation = ['+', '-', '*', '/'][getRandomInt(0, 3)];
+    let num1, num2, question, correct, incorrect;
+
+    switch (operation) {
+        case '+':
+            num1 = getRandomInt(10, 99);
+            num2 = getRandomInt(10, 99);
+            correct = num1 + num2;
+            question = `${num1} + ${num2} = ?`;
+            incorrect = correct + (Math.random() > 0.5 ? getRandomInt(1, 5) : -getRandomInt(1, 5));
+            if (incorrect === correct) incorrect += (Math.random() > 0.5 ? 1 : -1); // Ensure incorrect is different
+            break;
+        case '-':
+            num1 = getRandomInt(10, 99);
+            num2 = getRandomInt(10, 99);
+            if (num1 < num2) [num1, num2] = [num2, num1]; // Ensure num1 >= num2
+            correct = num1 - num2;
+            question = `${num1} - ${num2} = ?`;
+            incorrect = correct + (Math.random() > 0.5 ? getRandomInt(1, 5) : -getRandomInt(1, 5));
+            if (incorrect === correct) incorrect += (Math.random() > 0.5 ? 1 : -1);
+            break;
+        case '*':
+            num1 = getRandomInt(1, 10);
+            num2 = getRandomInt(1, 10);
+            correct = num1 * num2;
+            question = `${num1} * ${num2} = ?`;
+            incorrect = correct + (Math.random() > 0.5 ? getRandomInt(1, 3) : -getRandomInt(1, 3));
+            if (incorrect === correct) incorrect += (Math.random() > 0.5 ? 1 : -1);
+            break;
+        case '/':
+            num2 = getRandomInt(1, 10);
+            num1 = num2 * getRandomInt(1, 10); // Ensure num1 is a multiple of num2
+            correct = num1 / num2;
+            question = `${num1} / ${num2} = ?`;
+            incorrect = correct + (Math.random() > 0.5 ? getRandomInt(1, 3) : -getRandomInt(1, 3));
+            if (incorrect === correct) incorrect += (Math.random() > 0.5 ? 1 : -1);
+            break;
+    }
+
+    // Shuffle correct and incorrect answers
+    const answers = Math.random() > 0.5 ? [correct, incorrect] : [incorrect, correct];
+
+    return { question, answers, correct };
+}
+
 let currentPlanet = null;
 let rocket = null;
 let particles = null;
@@ -37,23 +86,24 @@ function loadLevel() {
     if (rocket) scene.remove(rocket);
     answerButtons.innerHTML = '';
 
-    const levelData = quizData[currentQuestionIndex];
+    const problem = generateProblem();
+    const planetData = planetTextures[getRandomInt(0, planetTextures.length - 1)];
 
     // Create Planet
     const textureLoader = new THREE.TextureLoader();
     const geometry = new THREE.SphereGeometry(3, 32, 32);
-    const material = new THREE.MeshStandardMaterial({ map: textureLoader.load(levelData.texture) });
+    const material = new THREE.MeshStandardMaterial({ map: textureLoader.load(planetData.texture) });
     currentPlanet = new THREE.Mesh(geometry, material);
     scene.add(currentPlanet);
 
     // Display Question
-    speechBubble.innerText = levelData.question;
+    speechBubble.innerText = problem.question;
 
     // Display Answers
-    levelData.answers.forEach(answer => {
+    problem.answers.forEach(answer => {
         const button = document.createElement('button');
         button.innerText = answer;
-        button.addEventListener('click', () => selectAnswer(answer, levelData.correct));
+        button.addEventListener('click', () => selectAnswer(answer, problem.correct));
         answerButtons.appendChild(button);
     });
 }
@@ -74,7 +124,7 @@ function selectAnswer(selectedAnswer, correctAnswer) {
     } else {
         // Shake screen on wrong answer
         document.body.style.animation = 'shake 0.5s';
-        setTimeout(() => document.body.style.animation = '', 0.5);
+        setTimeout(() => document.body.style.animation = '', 500);
     }
 }
 
@@ -118,7 +168,7 @@ function animate() {
             setTimeout(() => {
                 scene.remove(particles);
                 particles = null;
-                currentQuestionIndex = (currentQuestionIndex + 1) % quizData.length;
+                // No currentQuestionIndex increment as problems are generated dynamically
                 loadLevel();
             }, 1000); // Wait for explosion to finish
         }
@@ -128,11 +178,17 @@ function animate() {
     if(particles) {
         const positions = particles.geometry.attributes.position.array;
         for(let i=0; i<positions.length; i+=3) {
-            positions[i] += particles.velocities[i];
-            positions[i+1] += particles.velocities[i+1];
-            positions[i+2] += particles.velocities[i+2];
+            positions[i] += particles.velocities[i] * 0.8; // Slow down over time
+            positions[i+1] += particles.velocities[i+1] * 0.8;
+            positions[i+2] += particles.velocities[i+2] * 0.8;
         }
         particles.geometry.attributes.position.needsUpdate = true;
+        // Optionally make particles fade out
+        particles.material.opacity -= 0.01;
+        if(particles.material.opacity <= 0) {
+            scene.remove(particles);
+            particles = null;
+        }
     }
 
 
@@ -142,9 +198,9 @@ function animate() {
 
 //-- INITIALIZATION -----------------------------------------------------------
 // Need to re-download textures
-const texturePromises = quizData.map(level => {
+const texturePromises = planetTextures.map(data => {
     return new Promise(resolve => {
-        new THREE.TextureLoader().load(level.texture, resolve);
+        new THREE.TextureLoader().load(data.texture, resolve);
     });
 });
 
