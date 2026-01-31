@@ -63,6 +63,7 @@ const aliens = []; // Array to hold alien objects
 const speechBubble = document.getElementById('speech-bubble');
 const answerButtons = document.getElementById('answer-buttons');
 const explosionSound = document.getElementById('explosion-sound');
+const incorrectMessage = document.getElementById('incorrect-message');
 
 //-- ALIEN --------------------------------------------------------------------
 function createAlien() {
@@ -144,8 +145,11 @@ function selectAnswer(selectedAnswer, correctAnswer) {
         scene.add(rocket);
 
     } else {
-        document.body.style.animation = 'shake 0.5s';
-        setTimeout(() => document.body.style.animation = '', 500);
+        incorrectMessage.classList.remove('hidden');
+        setTimeout(() => {
+            incorrectMessage.classList.add('hidden');
+            loadLevel();
+        }, 1000);
     }
 }
 
