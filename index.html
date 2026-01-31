@@ -1,21 +1,32 @@
+
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>우주 수학 퀴즈</title>
-    <link rel="stylesheet" href="style.css">
-</head>
+<!-- ... (head 부분은 동일) ... -->
 <body>
-    <div id="game-container">
-        <div id="question-container">
-            <div id="speech-bubble"></div>
+    <!-- ... (game-container, ui-container 상단은 동일) ... -->
+
+        <!-- 결과 화면 -->
+        <div id="result-screen" class="hidden">
+            <h2>퀴즈 결과</h2>
+            <p>최종 점수: <span id="final-score">0 / 0</span></p>
+
+            <!-- 애드센스 광고 슬롯 -->
+            <div class="ads-slot-container">
+                <!-- 여기에 구글 애드센스 코드를 붙여넣으세요 -->
+                <!-- 예시: <ins class="adsbygoogle" ... ></ins> -->
+                <p style="text-align:center; margin:20px 0; color:#888;">(광고 표시 영역)</p>
+            </div>
+
+            <div class="result-actions">
+                <button id="restart-btn">다른 퀴즈</button>
+                <div id="share-buttons">
+                    <button id="copy-link-btn">🔗 링크 복사</button>
+                    <button id="kakao-share-btn">카톡 공유</button>
+                </div>
+            </div>
         </div>
-        <div id="answer-buttons"></div>
-        <div id="incorrect-message" class="hidden">틀리면 땡</div>
+
     </div>
-    <audio id="explosion-sound" src="sounds/explosion.wav"></audio>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="main.js"></script>
+    <!-- ... (script 태그들은 동일) ... -->
 </body>
 </html>

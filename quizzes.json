@@ -1,0 +1,66 @@
+
+{
+  "categories": [
+    {
+      "name": "과학",
+      "quizzes": [
+        {
+          "id": "space-quiz-1",
+          "title": "우주 탐험 퀴즈 (초급)",
+          "questions": [
+            {
+              "question": "태양계에서 가장 큰 행성은 무엇일까요?",
+              "options": ["지구", "목성", "화성", "토성"],
+              "answer": "목성",
+              "texture": "textures/2k_jupiter.jpg"
+            },
+            {
+              "question": "지구의 유일한 자연 위성은 무엇일까요?",
+              "options": ["타이탄", "유로파", "달", "이오"],
+              "answer": "달",
+              "texture": "textures/2k_moon.jpg"
+            },
+            {
+              "question": "화성의 표면이 붉게 보이는 주된 이유는 무엇일까요?",
+              "options": ["산화 철", "구리", "식물", "외계인 페인트"],
+              "answer": "산화 철",
+              "texture": "textures/2k_mars.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "일반 상식",
+      "quizzes": [
+        {
+          "id": "common-sense-1",
+          "title": "알아두면 쓸데있는 상식 퀴즈",
+          "questions": [
+            {
+              "question": "대한민국의 수도는 어디일까요?",
+              "options": ["부산", "인천", "서울", "제주"],
+              "answer": "서울"
+            },
+            {
+              "question": "세상에서 가장 높은 산은 무엇일까요?",
+              "options": ["한라산", "백두산", "K2", "에베레스트 산"],
+              "answer": "에베레스트 산"
+            }
+          ]
+        },
+        {
+          "id": "common-sense-2",
+          "title": "헷갈리는 맞춤법 퀴즈",
+          "questions": [
+            {
+              "question": "'어떻게'가 맞을까요, '어떡해'가 맞을까요?",
+              "options": ["어떻게", "어떡해", "상황에 따라 다름"],
+              "answer": "상황에 따라 다름"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

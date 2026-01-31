@@ -1,247 +1,153 @@
-//-- SETUP --------------------------------------------------------------------
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.getElementById('game-container').appendChild(renderer.domElement);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-scene.add(ambientLight);
-const pointLight = new THREE.PointLight(0xffffff, 1);
-pointLight.position.set(5, 5, 5);
-scene.add(pointLight);
+// ... (기존 코드는 동일) ...
 
-camera.position.z = 10;
-
-//-- QUIZ DATA ----------------------------------------------------------------
-const planetTextures = [
-    { name: 'mars', texture: 'textures/2k_mars.jpg' },
-    { name: 'earth', texture: 'textures/2k_earth_daymap.jpg' },
-    { name: 'venus', texture: 'textures/2k_venus_surface.jpg' },
-    { name: 'mercury', texture: 'textures/2k_mercury.jpg' },
-    { name: 'moon', texture: 'textures/2k_moon.jpg' },
-];
-
-let level = 1;
-
-function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function generateProblem() {
-    let num1, num2, question, correct, incorrect;
-
-    if (level <= 2) { // Single digit addition
-        num1 = getRandomInt(1, 9);
-        num2 = getRandomInt(1, 9);
-        correct = num1 + num2;
-        question = `${num1} + ${num2} = ?`;
-    } else if (level <= 4) { // Single digit subtraction
-        num1 = getRandomInt(5, 9);
-        num2 = getRandomInt(1, 4);
-        correct = num1 - num2;
-        question = `${num1} - ${num2} = ?`;
-    } else { // Double digit + single digit addition
-        num1 = getRandomInt(10, 99);
-        num2 = getRandomInt(1, 9);
-        correct = num1 + num2;
-        question = `${num1} + ${num2} = ?`;
-    }
-
-    incorrect = correct + (Math.random() > 0.5 ? getRandomInt(1, 5) : -getRandomInt(1, 5));
-    if (incorrect === correct) incorrect += (Math.random() > 0.5 ? 1 : -1);
-
-    const answers = Math.random() > 0.5 ? [correct, incorrect] : [incorrect, correct];
-    return { question, answers, correct };
-}
-
-let currentPlanet = null;
-let rocket = null;
-let particles = null;
-const aliens = []; // Array to hold alien objects
-
-const speechBubble = document.getElementById('speech-bubble');
-const answerButtons = document.getElementById('answer-buttons');
-const explosionSound = document.getElementById('explosion-sound');
-const incorrectMessage = document.getElementById('incorrect-message');
-
-//-- ALIEN --------------------------------------------------------------------
-function createAlien() {
-    const alienGroup = new THREE.Group();
-
-    // Body
-    const bodyGeom = new THREE.SphereGeometry(0.5, 16, 16);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00ff00 }); // Green body
-    const body = new THREE.Mesh(bodyGeom, bodyMat);
-    alienGroup.add(body);
-
-    // Eye
-    const eyeGeom = new THREE.SphereGeometry(0.1, 12, 12);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff }); // White eye
-    const eye = new THREE.Mesh(eyeGeom, eyeMat);
-    eye.position.set(0, 0.1, 0.4);
-    alienGroup.add(eye);
-    
-    // Pupil
-    const pupilGeom = new THREE.SphereGeometry(0.05, 12, 12);
-    const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 }); // Black pupil
-    const pupil = new THREE.Mesh(pupilGeom, pupilMat);
-    pupil.position.set(0, 0.1, 0.45);
-    alienGroup.add(pupil);
-
-    // Set initial position and a random movement direction
-    alienGroup.position.set(
-        (Math.random() - 0.5) * 20,
-        (Math.random() - 0.5) * 10,
-        (Math.random() - 0.5) * 5
-    );
-
-    alienGroup.velocity = new THREE.Vector3(
-        (Math.random() - 0.5) * 0.02,
-        (Math.random() - 0.5) * 0.02,
-        0
-    );
-    
-    scene.add(alienGroup);
-    aliens.push(alienGroup);
-}
-
-
-//-- GAME LOGIC ---------------------------------------------------------------
-function loadLevel() {
-    if (currentPlanet) scene.remove(currentPlanet);
-    if (rocket) scene.remove(rocket);
-    answerButtons.innerHTML = '';
-
-    const problem = generateProblem();
-    const planetData = planetTextures[getRandomInt(0, planetTextures.length - 1)];
-
-    const textureLoader = new THREE.TextureLoader();
-    const geometry = new THREE.SphereGeometry(3, 32, 32);
-    const material = new THREE.MeshStandardMaterial({ map: textureLoader.load(planetData.texture) });
-    currentPlanet = new THREE.Mesh(geometry, material);
-    scene.add(currentPlanet);
-
-    speechBubble.innerText = problem.question;
-
-    problem.answers.forEach(answer => {
-        const button = document.createElement('button');
-        button.innerText = answer;
-        button.addEventListener('click', () => selectAnswer(answer, problem.correct));
-        answerButtons.appendChild(button);
-    });
-}
-
-function selectAnswer(selectedAnswer, correctAnswer) {
-    if (selectedAnswer === correctAnswer) {
-        level++;
-        document.querySelectorAll('#answer-buttons button').forEach(b => b.disabled = true);
-        
-        const rocketGeom = new THREE.CylinderGeometry(0.2, 0.2, 1, 32);
-        const rocketMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        rocket = new THREE.Mesh(rocketGeom, rocketMat);
-        rocket.position.y = -10;
-        rocket.rotation.x = Math.PI;
-        scene.add(rocket);
-
-    } else {
-        incorrectMessage.classList.remove('hidden');
-        setTimeout(() => {
-            incorrectMessage.classList.add('hidden');
-            loadLevel();
-        }, 1000);
-    }
-}
-
-function createExplosion() {
-    explosionSound.play();
-    const particleCount = 100;
-    const particlesGeom = new THREE.BufferGeometry();
-    const posArray = new Float32Array(particleCount * 3);
-    const velocities = [];
-
-    for (let i = 0; i < particleCount * 3; i++) {
-        posArray[i] = (Math.random() - 0.5) * 0.1;
-        velocities.push((Math.random() - 0.5) * 0.1);
-    }
-
-    particlesGeom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-    const particleMat = new THREE.PointsMaterial({ color: 0xffa500, size: 0.1, transparent: true });
-    particles = new THREE.Points(particlesGeom, particleMat);
-    particles.velocities = velocities;
-    scene.add(particles);
-}
-
-//-- ANIMATION LOOP -----------------------------------------------------------
-function animate() {
-    requestAnimationFrame(animate);
-
-    if (currentPlanet) {
-        currentPlanet.rotation.y += 0.005;
-    }
-
-    // Animate aliens
-    aliens.forEach(alien => {
-        alien.position.add(alien.velocity);
-
-        // Bounce off screen edges
-        if (alien.position.x > 15 || alien.position.x < -15) {
-            alien.velocity.x = -alien.velocity.x;
-        }
-        if (alien.position.y > 8 || alien.position.y < -8) {
-            alien.velocity.y = -alien.velocity.y;
-        }
-    });
-
-    if (rocket) {
-        rocket.position.y += 0.2;
-        if (rocket.position.distanceTo(currentPlanet.position) < 1) {
-            scene.remove(currentPlanet);
-            currentPlanet = null;
-            scene.remove(rocket);
-            rocket = null;
-
-            createExplosion();
-
-            setTimeout(() => {
-                scene.remove(particles);
-                particles = null;
-                loadLevel();
-            }, 1000);
-        }
-    }
-    
-    if(particles) {
-        const positions = particles.geometry.attributes.position.array;
-        for(let i=0; i<positions.length; i+=3) {
-            positions[i] += particles.velocities[i] * 0.8;
-            positions[i+1] += particles.velocities[i+1] * 0.8;
-            positions[i+2] += particles.velocities[i+2] * 0.8;
-        }
-        particles.geometry.attributes.position.needsUpdate = true;
-        particles.material.opacity -= 0.01;
-    }
-
-    renderer.render(scene, camera);
-}
+//-- UI ELEMENTS ---------------------------------------------------------------
+// ... (기존 UI 요소들) ...
+const copyLinkBtn = document.getElementById('copy-link-btn');
+const kakaoShareBtn = document.getElementById('kakao-share-btn');
 
 //-- INITIALIZATION -----------------------------------------------------------
-const texturePromises = planetTextures.map(data => {
-    return new Promise(resolve => {
-        new THREE.TextureLoader().load(data.texture, resolve);
-    });
-});
 
-Promise.all(texturePromises).then(() => {
-    for (let i = 0; i < 5; i++) {
-        createAlien();
+document.addEventListener('DOMContentLoaded', async () => {
+    setupScene();
+    initKakao(); // 카카오 SDK 초기화
+    await loadQuizzes();
+    setupEventListeners();
+    
+    const quizId = window.location.hash.substring(1);
+    if (allQuizzes[quizId]) {
+        startQuiz(quizId);
+    } else {
+        showSelectionScreen();
+        updateOgTags(); // 메인 페이지 OG 태그로 설정
     }
-    loadLevel();
+    
     animate();
 });
 
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
+
+//-- SETUP FUNCTIONS ----------------------------------------------------------
+
+// ... (setupScene) ...
+
+function setupEventListeners() {
+    restartBtn.addEventListener('click', showSelectionScreen);
+    copyLinkBtn.addEventListener('click', copyQuizLink);
+    kakaoShareBtn.addEventListener('click', shareToKakao);
+    window.addEventListener('resize', onWindowResize);
+    window.addEventListener('hashchange', onHashChange);
+}
+
+function initKakao() {
+    // 본인의 카카오 앱 JavaScript 키를 입력하세요.
+    // 예: Kakao.init('YOUR_JAVASCRIPT_KEY');
+    // 지금은 데모용으로 실제 키 없이 기능만 구현합니다.
+    try {
+        Kakao.init('YOUR_JAVASCRIPT_KEY'); 
+        console.log("Kakao SDK initialized.");
+    } catch(e) {
+        console.warn("Kakao SDK FAILED to initialize. Please check your App Key.");
+        kakaoShareBtn.style.display = 'none'; // 키가 없으면 버튼 숨김
+    }
+}
+
+// ... (loadQuizzes) ...
+
+//-- SCREEN MANAGEMENT & OG TAGS ------------------------------------------------
+
+function showScreen(screenToShow) {
+    [selectionScreen, quizScreen, resultScreen].forEach(screen => {
+        screen.classList.add('hidden');
+    });
+    screenToShow.classList.remove('hidden');
+}
+
+function showSelectionScreen() {
+    showScreen(selectionScreen);
+    history.pushState("", document.title, window.location.pathname + window.location.search);
+    updateOgTags(); // 메인 OG 태그로 리셋
+}
+
+function updateOgTags(quiz = null, resultScore = -1) {
+    const title = quiz ? `[퀴즈 결과] ${quiz.title}` : "도전! 퀴즈 킹";
+    let description = "당신의 지식을 시험해보세요! 다양한 주제의 퀴즈가 기다리고 있습니다.";
+    if (quiz && resultScore !== -1) {
+        description = `제가 ${resultScore}/${quiz.questions.length}점을 받았어요! 당신도 도전해보세요!`;
+    }
+
+    document.querySelector('meta[property="og:title"]').setAttribute('content', title);
+    document.querySelector('meta[property="og:description"]').setAttribute('content', description);
+    // 나중에는 퀴즈별 이미지로 변경하는 로직도 추가 가능
+    // document.querySelector('meta[property="og:image"]').setAttribute('content', quiz ? quiz.image : '/images/og_main.png');
+}
+
+
+//-- QUIZ LOGIC ---------------------------------------------------------------
+
+function startQuiz(quizId) {
+    // ... (기존 startQuiz 로직)
+    showScreen(quizScreen);
+    showQuestion(currentQuestionIndex);
+    updateOgTags(currentQuiz); // 퀴즈 시작 시 OG 태그 업데이트
+}
+
+// ... (showQuestion, selectAnswer) ...
+
+function showResult() {
+    const totalQuestions = currentQuiz.questions.length;
+    finalScoreEl.textContent = `${score} / ${totalQuestions}`;
+    showScreen(resultScreen);
+    updateOgTags(currentQuiz, score); // 결과와 함께 OG 태그 업데이트
+}
+
+
+//-- SHARE FUNCTIONS ----------------------------------------------------------
+
+function getShareableLink() {
+    // 현재 퀴즈의 해시가 포함된 전체 URL 반환
+    return window.location.href;
+}
+
+function copyQuizLink() {
+    const link = getShareableLink();
+    navigator.clipboard.writeText(link).then(() => {
+        alert("결과 링크가 복사되었어요! 친구에게 공유해보세요!");
+    }, (err) => {
+        console.error('링크 복사 실패: ', err);
+        alert("링크 복사에 실패했어요.");
+    });
+}
+
+function shareToKakao() {
+    if (!window.Kakao || !window.Kakao.isInitialized()) {
+        alert("카카오 공유 기능이 현재 동작하지 않습니다.");
+        return;
+    }
+    
+    const link = getShareableLink();
+    
+    Kakao.Link.sendDefault({
+        objectType: 'feed',
+        content: {
+            title: `[퀴즈 결과] ${currentQuiz.title}`,
+            description: `제가 ${score}/${currentQuiz.questions.length}점을 받았어요! 당신도 도전해보세요!`, 
+            imageUrl: 'ABSOLUTE_URL_TO_YOUR_OG_IMAGE.png', // OG 이미지의 전체 주소
+            link: {
+                mobileWebUrl: link,
+                webUrl: link,
+            },
+        },
+        buttons: [
+            {
+                title: '퀴즈 풀러가기',
+                link: {
+                    mobileWebUrl: link,
+                    webUrl: link,
+                },
+            },
+        ],
+    });
+}
+
+// ... (Event Handlers & Animation) ...
+
