@@ -1,4 +1,4 @@
-//-- SETUP --------------------------------------------------------------------
+깃허브 푸시 해줘//-- SETUP --------------------------------------------------------------------
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -58,10 +58,53 @@ function generateProblem() {
 let currentPlanet = null;
 let rocket = null;
 let particles = null;
+const aliens = []; // Array to hold alien objects
 
 const speechBubble = document.getElementById('speech-bubble');
 const answerButtons = document.getElementById('answer-buttons');
 const explosionSound = document.getElementById('explosion-sound');
+
+//-- ALIEN --------------------------------------------------------------------
+function createAlien() {
+    const alienGroup = new THREE.Group();
+
+    // Body
+    const bodyGeom = new THREE.SphereGeometry(0.5, 16, 16);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00ff00 }); // Green body
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    alienGroup.add(body);
+
+    // Eye
+    const eyeGeom = new THREE.SphereGeometry(0.1, 12, 12);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff }); // White eye
+    const eye = new THREE.Mesh(eyeGeom, eyeMat);
+    eye.position.set(0, 0.1, 0.4);
+    alienGroup.add(eye);
+    
+    // Pupil
+    const pupilGeom = new THREE.SphereGeometry(0.05, 12, 12);
+    const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 }); // Black pupil
+    const pupil = new THREE.Mesh(pupilGeom, pupilMat);
+    pupil.position.set(0, 0.1, 0.45);
+    alienGroup.add(pupil);
+
+    // Set initial position and a random movement direction
+    alienGroup.position.set(
+        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) * 10,
+        (Math.random() - 0.5) * 5
+    );
+
+    alienGroup.velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.02,
+        (Math.random() - 0.5) * 0.02,
+        0
+    );
+    
+    scene.add(alienGroup);
+    aliens.push(alienGroup);
+}
+
 
 //-- GAME LOGIC ---------------------------------------------------------------
 function loadLevel() {
@@ -133,6 +176,19 @@ function animate() {
         currentPlanet.rotation.y += 0.005;
     }
 
+    // Animate aliens
+    aliens.forEach(alien => {
+        alien.position.add(alien.velocity);
+
+        // Bounce off screen edges
+        if (alien.position.x > 15 || alien.position.x < -15) {
+            alien.velocity.x = -alien.velocity.x;
+        }
+        if (alien.position.y > 8 || alien.position.y < -8) {
+            alien.velocity.y = -alien.velocity.y;
+        }
+    });
+
     if (rocket) {
         rocket.position.y += 0.2;
         if (rocket.position.distanceTo(currentPlanet.position) < 1) {
@@ -173,6 +229,9 @@ const texturePromises = planetTextures.map(data => {
 });
 
 Promise.all(texturePromises).then(() => {
+    for (let i = 0; i < 5; i++) {
+        createAlien();
+    }
     loadLevel();
     animate();
 });
